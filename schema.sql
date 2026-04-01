@@ -7,7 +7,8 @@ CREATE TABLE User (
   username VARCHAR(50) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_user_username UNIQUE (username)
 );
 
 CREATE TABLE Deck (
@@ -37,7 +38,9 @@ CREATE TABLE StudySession (
   score INT,
   cards_studied INT,
   FOREIGN KEY (user_id) REFERENCES User(user_id),
-  FOREIGN KEY (deck_id) REFERENCES Deck(deck_id)
+  FOREIGN KEY (deck_id) REFERENCES Deck(deck_id),
+  CONSTRAINT chk_score CHECK (score BETWEEN 0 AND 100),
+  CONSTRAINT chk_cards_studied CHECK (cards_studied >= 0)
 );
 
 -- Optional seed data
@@ -54,6 +57,7 @@ VALUES (1, 'What is a cell', 'Basic unit of life');
 CREATE INDEX idx_deck_user ON Deck (user_id);
 CREATE INDEX idx_flashcard_deck ON Flashcard (deck_id);
 CREATE INDEX idx_session_user_deck ON StudySession (user_id, deck_id);
+CREATE INDEX idx_session_date ON StudySession (session_date);
 
 -- Lightweight test cases (safe to run)
 -- 1) Add another user and deck with a couple cards
