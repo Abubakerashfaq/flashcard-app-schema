@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flashcards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #f2f6fd;
+      --surface:    #ffffff;
+      --blue:       #2563eb;
+      --blue-light: #dbeafe;
+      --blue-dark:  #1d4ed8;
+      --text:       #1e2a3a;
+      --muted:      #7a8aaa;
+      --border:     #dde6f5;
+      --danger:     #ef4444;
+      --danger-bg:  #fee2e2;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: 'Nunito', sans-serif; min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 20;
+    }
+    .logo { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--blue); }
+    .logo span { color: var(--text); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-user { font-size: 13px; font-weight: 700; color: var(--muted); }
+    .breadcrumb { font-size: 13px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .breadcrumb a { color: var(--blue); cursor: pointer; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 6px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; border: none; border-radius: 9px; padding: 9px 16px; cursor: pointer; transition: all .15s; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-outline { background: #fff; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
+    .btn-ghost { background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; padding: 6px 10px; border-radius: 7px; }
+    .btn-ghost:hover { color: var(--danger); background: var(--danger-bg); }
+
+    /* PAGE */
+    .page { max-width: 1040px; margin: 0 auto; padding: 36px 24px 80px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 12px; }
+    .page-header h2 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; }
+    .page-header p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* AUTH PAGE */
+    .auth-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .auth-box {
+      background: #fff; border: 1.5px solid var(--border); border-radius: 18px;
+      width: 100%; max-width: 400px; padding: 36px 32px;
+      box-shadow: 0 8px 40px rgba(37,99,235,.08);
+    }
+    .auth-logo { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--blue); margin-bottom: 6px; }
+    .auth-logo span { color: var(--text); }
+    .auth-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .auth-tabs { display: flex; gap: 4px; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 24px; }
+    .auth-tab { flex: 1; text-align: center; padding: 8px; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--muted); transition: all .15s; border: none; background: none; font-family: 'Nunito', sans-serif; }
+    .auth-tab.active { background: #fff; color: var(--blue); box-shadow: 0 1px 6px rgba(37,99,235,.1); }
+    .auth-error { background: var(--danger-bg); color: var(--danger); font-size: 12px; font-weight: 700; border-radius: 8px; padding: 9px 12px; margin-bottom: 14px; display: none; }
+    .auth-error.show { display: block; }
+    .auth-success { background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 9px 12px; margin-bottom: 14px; display: none; }
+    .auth-success.show { display: block; }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 24px; }
+    .chip { font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; padding: 5px 13px; border-radius: 999px; border: 1.5px solid var(--border); background: #fff; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .chip:hover { border-color: var(--blue); color: var(--blue); }
+    .chip.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    /* DECK GRID */
+    .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+    .deck-card {
+      background: #fff; border: 1.5px solid var(--border); border-radius: 16px;
+      overflow: hidden; cursor: pointer;
+      transition: transform .18s, box-shadow .18s, border-color .18s;
+      animation: up .3s ease both;
+    }
+    .deck-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(37,99,235,.1); border-color: #93c5fd; }
+
+    .deck-banner {
+      height: 110px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .deck-banner-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    .deck-banner-fallback span { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.2); user-select: none; }
+
+    .deck-body { padding: 13px 15px 14px; }
+    .deck-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .deck-name { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; }
+    .badge { font-size: 11px; font-weight: 700; background: var(--blue-light); color: var(--blue-dark); border-radius: 6px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
+    .deck-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .deck-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1.5px solid var(--border); color: var(--muted); }
+    .deck-actions { display: flex; gap: 6px; margin-top: 11px; }
+
+    /* CARD GRID */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+    .flash-card { background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 16px; animation: up .3s ease both; }
+    .flash-card:hover { border-color: #93c5fd; }
+    .fc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+    .fc-front .fc-label { color: var(--blue); }
+    .fc-back .fc-label { color: var(--muted); }
+    .fc-text { font-size: 14px; font-weight: 600; line-height: 1.5; }
+    .fc-back .fc-text { font-size: 13px; font-weight: 400; color: var(--muted); }
+    .fc-divider { height: 1px; background: var(--border); margin: 10px 0; }
+    .fc-hint { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 6px; }
+    .fc-actions { display: flex; justify-content: flex-end; gap: 5px; margin-top: 12px; }
+    .icon-btn { width: 30px; height: 30px; border-radius: 7px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: all .15s; }
+    .icon-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .icon-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* EMPTY STATE */
+    .empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px 24px; background: #fff; border: 1.5px dashed var(--border); border-radius: 16px; text-align: center; }
+    .empty-icon { width: 52px; height: 52px; background: var(--blue-light); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--blue); }
+    .empty h3 { font-family: 'Playfair Display', serif; font-size: 18px; }
+    .empty p { font-size: 13px; color: var(--muted); max-width: 280px; line-height: 1.6; }
+
+    /* MODAL */
+    .overlay { position: fixed; inset: 0; background: rgba(15,25,50,.4); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: #fff; border-radius: 16px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(15,25,50,.18); transform: translateY(20px); opacity: 0; transition: transform .22s ease, opacity .2s; }
+    .overlay.open .modal { transform: translateY(0); opacity: 1; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 0; }
+    .modal-head h3 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; }
+    .modal-close { background: var(--bg); border: none; border-radius: 7px; width: 30px; height: 30px; cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 16px 20px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 0 20px 18px; }
+
+    /* FORM */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+    .field label span { color: var(--muted); font-weight: 500; }
+    .field input, .field textarea {
+      width: 100%; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--text); background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 9px 11px; outline: none; transition: border-color .15s;
+    }
+    .field input:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+    .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Color picker */
+    .swatch-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+    .swatch { width: 26px; height: 26px; border-radius: 6px; cursor: pointer; border: 2.5px solid transparent; transition: transform .15s; }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.on { border-color: #1e2a3a; }
+
+    /* Confirm */
+    .confirm-modal { max-width: 340px; text-align: center; }
+    .confirm-icon { width: 46px; height: 46px; background: var(--danger-bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 20px auto 12px; color: var(--danger); }
+    .confirm-modal h3 { font-family: 'Playfair Display', serif; font-size: 17px; padding: 0 20px; }
+    .confirm-modal p { font-size: 13px; color: var(--muted); padding: 6px 24px 0; line-height: 1.6; }
+    .confirm-foot { display: flex; gap: 8px; padding: 18px 20px; }
+    .confirm-foot .btn { flex: 1; justify-content: center; }
+
+    /* Toast */
+    .toasts { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { font-size: 13px; font-weight: 700; background: var(--text); color: #fff; padding: 10px 16px; border-radius: 10px; animation: up .2s ease; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+    .toast.ok  { background: #166534; }
+    .toast.err { background: var(--danger); }
+
+    .screen { display: none; }
+    .screen.on { display: block; }
+
+    @keyframes up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .deck-card:nth-child(1){animation-delay:.03s} .deck-card:nth-child(2){animation-delay:.06s}
+    .deck-card:nth-child(3){animation-delay:.09s} .deck-card:nth-child(4){animation-delay:.12s}
+  </style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN (shown when not logged in) ── -->
+<div id="sAuth" class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">flash<span>cards</span></div>
+    <p class="auth-sub">Study smarter with spaced repetition.</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Log In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-success" id="authSuccess"></div>
+
+    <!-- Login form -->
+    <div id="loginForm">
+      <div class="field">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="loginPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Log In</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="registerForm" style="display:none">
+      <div class="field">
+        <label>Username</label>
+        <input id="regUser" placeholder="coolstudent42"/>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="regEmail" type="email" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="regPass" type="password" placeholder="At least 4 characters" onkeydown="if(event.key==='Enter')doRegister()"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN APP (hidden until logged in) ── -->
+<div id="app" style="display:none">
+
+  <nav>
+    <div class="logo">flash<span>cards</span></div>
+    <div class="nav-right">
+      <div class="breadcrumb" id="bc"></div>
+      <span class="nav-user" id="navUser"></span>
+      <button class="btn btn-primary btn-sm" id="navBtn"></button>
+      <button class="btn-ghost" onclick="doLogout()">Log out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+
+    <!-- DECKS -->
+    <div class="screen on" id="sDecks">
+      <div class="page-header">
+        <div><h2>My Decks</h2><p id="deckSub"></p></div>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="deck-grid" id="deckGrid"></div>
+      <div class="empty" id="emptyDecks" style="display:none">
+        <div class="empty-icon">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        </div>
+        <h3>No decks yet</h3>
+        <p>Create your first deck to start studying.</p>
+        <button class="btn btn-primary btn-sm" onclick="openDeckForm()">+ Create Deck</button>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div class="screen" id="sCards">
+      <div class="page-header">
+        <div><h2 id="cardTitle"></h2><p id="cardSub"></p></div>
+      </div>
+      <div class="card-grid" id="cardGrid"></div>
+      <div class="empty" id="emptyCards" style="display:none">
+        <div class="empty-icon">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/></svg>
+        </div>
+        <h3>No cards yet</h3>
+        <p>Add your first flashcard to this deck.</p>
+        <button class="btn btn-primary btn-sm" onclick="openCardForm()">+ Add Card</button>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+</div><!-- /app -->
+
+
+<!-- DECK FORM MODAL -->
+<div class="overlay" id="oDeck" onclick="if(event.target===this)closeDeckForm()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="dfTitle">New Deck</h3>
+      <button class="modal-close" onclick="closeDeckForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="two-col">
+        <div class="field">
+          <label>Name</label>
+          <input id="df-name" placeholder="Deck name" maxlength="50"/>
+        </div>
+        <div class="field">
+          <label>Color</label>
+          <div class="swatch-row" id="colorPicker"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Description <span>optional</span></label>
+        <textarea id="df-desc" placeholder="What's this deck about?" style="min-height:64px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline btn-sm" onclick="closeDeckForm()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="dfSave" onclick="saveDeck()">Create Deck</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARD FORM MODAL -->
+<div class="overlay" id="oCard" onclick="if(event.target===this)closeCardForm()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="cfTitle">New Card</h3>
+      <button class="modal-close" onclick="closeCardForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Front — question or term</label>
+        <textarea id="cf-front" placeholder="What do you want to recall?"></textarea>
+      </div>
+      <div class="field">
+        <label>Back — answer or definition</label>
+        <textarea id="cf-back" placeholder="The answer…"></textarea>
+      </div>
+      <div class="field">
+        <label>Hint <span>optional</span></label>
+        <input id="cf-hint" placeholder="A nudge to help remember…"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline btn-sm" onclick="closeCardForm()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="cfSave" onclick="saveCard()">Add Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="overlay" id="oDel" onclick="if(event.target===this)closeDel()">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </div>
+    <h3 id="delTitle">Delete?</h3>
+    <p id="delBody"></p>
+    <div class="confirm-foot">
+      <button class="btn btn-outline btn-sm" onclick="closeDel()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="delBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let decks        = [];       // fetched from API
+let activeDeckId = null;
+let activeCards  = [];       // cards for the current deck
+let view         = 'decks';
+let activeTag    = 'all';
+let editDeckId   = null;
+let editCardId   = null;
+let selColor     = '#2563eb';
+let pendingDel   = null;
+
+const COLORS = ['#2563eb','#0ea5e9','#6366f1','#0284c7','#059669','#ca8a04','#dc2626','#db2777','#7c3aed','#0d9488'];
+const API    = '';   // empty = same origin (Flask serves both)
+
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include'   // needed for session cookies
+  };
+  if (body) opts.body = JSON.stringify(body);
+
+  const res  = await fetch(API + path, opts);
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
+}
+
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0) === (tab === 'login'));
+  });
+  document.getElementById('loginForm').style.display    = tab === 'login'    ? '' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+  clearAuthMsgs();
+}
+
+function clearAuthMsgs() {
+  document.getElementById('authError').className   = 'auth-error';
+  document.getElementById('authSuccess').className = 'auth-success';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.className = 'auth-error show';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('authSuccess');
+  el.textContent = msg;
+  el.className = 'auth-success show';
+}
+
+async function doLogin() {
+  clearAuthMsgs();
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+
+  if (!email || !pass) { showAuthError('Please fill in all fields.'); return; }
+
+  const { ok, data } = await api('POST', '/api/login', { email, password: pass });
+  if (!ok) { showAuthError(data.error); return; }
+
+  // login worked — show the app
+  document.getElementById('navUser').textContent = '👋 ' + data.username;
+  enterApp();
+}
+
+async function doRegister() {
+  clearAuthMsgs();
+  const username = document.getElementById('regUser').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const pass     = document.getElementById('regPass').value;
+
+  if (!username || !email || !pass) { showAuthError('Please fill in all fields.'); return; }
+
+  const { ok, data } = await api('POST', '/api/register', { username, email, password: pass });
+  if (!ok) { showAuthError(data.error); return; }
+
+  showAuthSuccess(data.message + ' Switching to login…');
+  setTimeout(() => {
+    clearAuthMsgs();
+    switchTab('login');
+    document.getElementById('loginEmail').value = email;
+  }, 1500);
+}
+
+async function doLogout() {
+  await api('POST', '/api/logout');
+  // go back to auth screen
+  document.getElementById('app').style.display   = 'none';
+  document.getElementById('sAuth').style.display = 'flex';
+  decks = []; activeCards = [];
+  clearAuthMsgs();
+}
+
+// called after successful login
+async function enterApp() {
+  document.getElementById('sAuth').style.display = 'none';
+  document.getElementById('app').style.display   = 'block';
+  show('decks');
+  await loadDecks();
+}
+
+// check if there's already a session when the page loads
+async function checkSession() {
+  const { data } = await api('GET', '/api/me');
+  if (data.logged_in) {
+    document.getElementById('navUser').textContent = '👋 ' + data.username;
+    await enterApp();
+  }
+  // else: auth screen stays visible (default)
+}
+
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+
+function show(v) {
+  view = v;
+  document.getElementById('sDecks').className = 'screen' + (v === 'decks' ? ' on' : '');
+  document.getElementById('sCards').className = 'screen' + (v === 'cards' ? ' on' : '');
+
+  const bc  = document.getElementById('bc');
+  const btn = document.getElementById('navBtn');
+
+  if (v === 'decks') {
+    bc.innerHTML    = '';
+    btn.textContent = '+ New Deck';
+    btn.onclick     = () => openDeckForm();
+  } else {
+    const d = decks.find(x => x.id === activeDeckId);
+    bc.innerHTML    = `<a onclick="show('decks');renderDecks()">My Decks</a> <span>/ ${esc(d?.name || '')}</span>`;
+    btn.textContent = '+ Add Card';
+    btn.onclick     = () => openCardForm();
+  }
+}
+
+
+// ── Decks ─────────────────────────────────────────────────────────────────────
+
+async function loadDecks() {
+  const { ok, data } = await api('GET', '/api/decks');
+  if (!ok) { toast('Could not load decks', 'err'); return; }
+  decks = data;
+  renderDecks();
+}
+
+function renderDecks() {
+  const filtered = activeTag === 'all' ? decks : decks.filter(d => d.tags.includes(activeTag));
+  const grid  = document.getElementById('deckGrid');
+  const empty = document.getElementById('emptyDecks');
+  const sub   = document.getElementById('deckSub');
+
+  buildFilters();
+  grid.innerHTML = '';
+
+  if (!filtered.length) {
+    empty.style.display = 'flex';
+    sub.textContent = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  const total = filtered.reduce((s, d) => s + d.card_count, 0);
+  sub.textContent = `${filtered.length} deck${filtered.length !== 1 ? 's' : ''} · ${total} cards`;
+
+  filtered.forEach(d => {
+    const initials = d.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const el = document.createElement('div');
+    el.className = 'deck-card';
+    el.innerHTML = `
+      <div class="deck-banner" onclick="openDeck(${d.id})">
+        <div class="deck-banner-fallback" style="background:${d.color}">
+          <span>${initials}</span>
+        </div>
+      </div>
+      <div class="deck-body">
+        <div class="deck-row" onclick="openDeck(${d.id})" style="cursor:pointer">
+          <span class="deck-name">${esc(d.name)}</span>
+          <span class="badge">${d.card_count} cards</span>
+        </div>
+        ${d.description ? `<p class="deck-desc" onclick="openDeck(${d.id})" style="cursor:pointer">${esc(d.description)}</p>` : ''}
+        <div class="deck-actions">
+          <button class="btn btn-outline btn-sm" onclick="openDeckForm(${d.id})">Edit</button>
+          <button class="btn btn-sm" style="color:var(--danger);background:var(--danger-bg);border:none" onclick="confirmDel('deck',${d.id})">Delete</button>
+        </div>
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+async function openDeck(id) {
+  activeDeckId = id;
+  show('cards');
+  await loadCards();
+}
+
+function buildFilters() {
+  const bar  = document.getElementById('filters');
+  const tags = [...new Set(decks.flatMap(d => d.tags))].sort();
+  bar.innerHTML = '';
+  ['all', ...tags].forEach(t => {
+    const b = document.createElement('button');
+    b.className   = 'chip' + (t === activeTag ? ' active' : '');
+    b.textContent = t === 'all' ? 'All' : t;
+    b.onclick = () => { activeTag = t; renderDecks(); };
+    bar.appendChild(b);
+  });
+}
+
+
+// ── Cards ─────────────────────────────────────────────────────────────────────
+
+async function loadCards() {
+  const { ok, data } = await api('GET', `/api/decks/${activeDeckId}/cards`);
+  if (!ok) { toast('Could not load cards', 'err'); return; }
+  activeCards = data;
+
+  // also update card_count on the local deck object
+  const d = decks.find(x => x.id === activeDeckId);
+  if (d) d.card_count = data.length;
+
+  renderCards();
+}
+
+function renderCards() {
+  const d = decks.find(x => x.id === activeDeckId);
+  if (!d) return;
+
+  document.getElementById('cardTitle').textContent = d.name;
+  document.getElementById('cardSub').textContent   = `${activeCards.length} card${activeCards.length !== 1 ? 's' : ''}`;
+
+  const grid  = document.getElementById('cardGrid');
+  const empty = document.getElementById('emptyCards');
+  grid.innerHTML = '';
+
+  if (!activeCards.length) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+
+  activeCards.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'flash-card';
+    el.innerHTML = `
+      <div class="fc-front"><div class="fc-label">Front</div><div class="fc-text">${esc(c.front)}</div></div>
+      <div class="fc-divider"></div>
+      <div class="fc-back"><div class="fc-label">Back</div><div class="fc-text">${esc(c.back)}</div></div>
+      ${c.hint ? `<div class="fc-hint">💡 ${esc(c.hint)}</div>` : ''}
+      <div class="fc-actions">
+        <button class="icon-btn" onclick="openCardForm(${c.id})" title="Edit">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="icon-btn del" onclick="confirmDel('card',${c.id})" title="Delete">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+
+// ── Deck form ─────────────────────────────────────────────────────────────────
+
+function openDeckForm(id) {
+  editDeckId = id || null;
+  const d = id ? decks.find(x => x.id === id) : null;
+  selColor = d ? d.color : '#2563eb';
+
+  document.getElementById('dfTitle').textContent = d ? 'Edit Deck' : 'New Deck';
+  document.getElementById('dfSave').textContent  = d ? 'Save' : 'Create Deck';
+  document.getElementById('df-name').value  = d ? d.name : '';
+  document.getElementById('df-desc').value  = d ? d.description : '';
+
+  renderSwatches();
+  document.getElementById('oDeck').classList.add('open');
+  setTimeout(() => document.getElementById('df-name').focus(), 200);
+}
+function closeDeckForm() { document.getElementById('oDeck').classList.remove('open'); }
+
+function renderSwatches() {
+  document.getElementById('colorPicker').innerHTML = COLORS.map(c =>
+    `<div class="swatch${c === selColor ? ' on' : ''}" style="background:${c}" onclick="selColor='${c}';renderSwatches()"></div>`
+  ).join('');
+}
+
+async function saveDeck() {
+  const name = document.getElementById('df-name').value.trim();
+  if (!name) { toast('Name is required', 'err'); return; }
+
+  const payload = {
+    name,
+    description: document.getElementById('df-desc').value.trim(),
+    color: selColor
+  };
+
+  if (editDeckId) {
+    const { ok, data } = await api('PUT', `/api/decks/${editDeckId}`, payload);
+    if (!ok) { toast(data.error || 'Error', 'err'); return; }
+    toast('Deck saved ✓', 'ok');
+  } else {
+    const { ok, data } = await api('POST', '/api/decks', payload);
+    if (!ok) { toast(data.error || 'Error', 'err'); return; }
+    toast('Deck created ✓', 'ok');
+  }
+
+  closeDeckForm();
+  await loadDecks();
+}
+
+
+// ── Card form ─────────────────────────────────────────────────────────────────
+
+function openCardForm(id) {
+  editCardId = id || null;
+  const c = id ? activeCards.find(x => x.id === id) : null;
+
+  document.getElementById('cfTitle').textContent = c ? 'Edit Card' : 'New Card';
+  document.getElementById('cfSave').textContent  = c ? 'Save' : 'Add Card';
+  document.getElementById('cf-front').value = c ? c.front : '';
+  document.getElementById('cf-back').value  = c ? c.back  : '';
+  document.getElementById('cf-hint').value  = c ? (c.hint || '') : '';
+
+  document.getElementById('oCard').classList.add('open');
+  setTimeout(() => document.getElementById('cf-front').focus(), 200);
+}
+function closeCardForm() { document.getElementById('oCard').classList.remove('open'); }
+
+async function saveCard() {
+  const front = document.getElementById('cf-front').value.trim();
+  const back  = document.getElementById('cf-back').value.trim();
+  if (!front) { toast('Front is required', 'err'); return; }
+  if (!back)  { toast('Back is required', 'err');  return; }
+
+  const payload = { front, back, hint: document.getElementById('cf-hint').value.trim() };
+
+  if (editCardId) {
+    const { ok, data } = await api('PUT', `/api/cards/${editCardId}`, payload);
+    if (!ok) { toast(data.error || 'Error', 'err'); return; }
+    toast('Card saved ✓', 'ok');
+  } else {
+    const { ok, data } = await api('POST', `/api/decks/${activeDeckId}/cards`, payload);
+    if (!ok) { toast(data.error || 'Error', 'err'); return; }
+    toast('Card added ✓', 'ok');
+  }
+
+  closeCardForm();
+  await loadCards();
+}
+
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+function confirmDel(type, id) {
+  pendingDel = { type, id };
+
+  if (type === 'deck') {
+    const d = decks.find(x => x.id === id);
+    document.getElementById('delTitle').textContent = `Delete "${d.name}"?`;
+    document.getElementById('delBody').textContent  = `This will remove the deck and all ${d.card_count} card${d.card_count !== 1 ? 's' : ''} inside it. This cannot be undone.`;
+  } else {
+    const c = activeCards.find(x => x.id === id);
+    document.getElementById('delTitle').textContent = 'Delete this card?';
+    document.getElementById('delBody').textContent  = `"${c.front.slice(0, 60)}${c.front.length > 60 ? '…' : ''}" will be permanently deleted.`;
+  }
+
+  document.getElementById('delBtn').onclick = doDel;
+  document.getElementById('oDel').classList.add('open');
+}
+function closeDel() { document.getElementById('oDel').classList.remove('open'); }
+
+async function doDel() {
+  if (!pendingDel) return;
+  closeDel();
+
+  if (pendingDel.type === 'deck') {
+    const { ok, data } = await api('DELETE', `/api/decks/${pendingDel.id}`);
+    if (!ok) { toast(data.error || 'Error', 'err'); return; }
+    toast('Deck deleted', 'err');
+    await loadDecks();
+  } else {
+    const { ok, data } = await api('DELETE', `/api/cards/${pendingDel.id}`);
+    if (!ok) { toast(data.error || 'Error', 'err'); return; }
+    toast('Card deleted', 'err');
+    await loadCards();
+  }
+
+  pendingDel = null;
+}
+
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className   = 'toast ' + type;
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  ['oDeck', 'oCard', 'oDel'].forEach(id => document.getElementById(id).classList.remove('open'));
+});
+
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+checkSession();
+</script>
+</body>
+</html>
